@@ -242,16 +242,16 @@
         <button onclick="toggleLight()">Light</button>
     </div>
     <div id="additionalInfo">
-        <h3>Additional Information:</h3>
+        <h3>Additional Info:</h3>
         <ul>
-            <li>Use the joystick on the left to rotate the view.</li>
-            <li>Use the joystick on the right to move the view.</li>
-            <li>Press 'W', 'S', 'A', 'D' to move the camera.</li>
-            <li>Use arrow keys to rotate the camera view.</li>
+            <li>Use WASD keys to move the view.</li>
+            <li>Use Arrow keys to rotate the view.</li>
+            <li>Scroll to zoom in and out.</li>
+            <li>Use Joystick controls to move the view as well.</li>
         </ul>
     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
     <script>
         // Global Variables
         let camera, scene, renderer, controls;
@@ -416,7 +416,7 @@
 
             const option = document.createElement('option');
             option.value = shape.id;
-            option.textContent = `Shape ${shapes.length}`;
+            option.textContent = Shape ${shapes.length};
             shapeSelect.appendChild(option);
         }
 
@@ -424,7 +424,7 @@
             if (selectedShape) {
                 scene.remove(selectedShape);
                 shapes.splice(shapes.indexOf(selectedShape), 1);
-                shapeSelect.removeChild(shapeSelect.querySelector(`option[value="${selectedShape.id}"]`));
+                shapeSelect.removeChild(shapeSelect.querySelector(option[value="${selectedShape.id}"]));
                 selectedShape = null;
             }
         }
@@ -475,15 +475,15 @@
                 const color = shape.material.color.getHexString();
                 const position = shape.position;
                 const scale = shape.scale;
-                return `
-// Shape: ${type}
-const geometry = new THREE.${type}();
-const material = new THREE.MeshStandardMaterial({ color: 0x${color} });
-const shape = new THREE.Mesh(geometry, material);
-shape.position.set(${position.x}, ${position.y}, ${position.z});
-shape.scale.set(${scale.x}, ${scale.y}, ${scale.z});
-scene.add(shape);
-`;
+                return 
+                // Shape: ${type}
+                const geometry = new THREE.${type}();
+                const material = new THREE.MeshStandardMaterial({ color: 0x${color} });
+                const shape = new THREE.Mesh(geometry, material);
+                shape.position.set(${position.x}, ${position.y}, ${position.z});
+                shape.scale.set(${scale.x}, ${scale.y}, ${scale.z});
+                scene.add(shape);
+                ;
             }).join('\n');
             codeOutput.textContent = code;
             codeOutput.style.display = isCodeVisible ? 'block' : 'none';
@@ -499,15 +499,15 @@ scene.add(shape);
         }
 
         function toggleGrid() {
-            console.log('Grid toggled');
+            console.log('Toggle Grid activated');
         }
 
         function toggleSnapGrid() {
-            console.log('Snap Grid toggled');
+            console.log('Toggle Snap Grid activated');
         }
 
         function toggleLight() {
-            console.log('Light toggled');
+            console.log('Toggle Light activated');
         }
 
         function useMoveTool() {
