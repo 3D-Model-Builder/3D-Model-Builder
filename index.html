@@ -329,13 +329,11 @@
         document.addEventListener('mousemove', function(event) {
             if (isRightMouseDown) {
                 const deltaX = event.clientX - lastMouseX;
-                const deltaY = event.clientY - lastMouseY;
 
+                // Apply rotation only around the Y axis (left-right)
                 camera.rotation.y -= deltaX * 0.005;
-                camera.rotation.x -= deltaY * 0.005;
 
                 lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
             }
         });
 
