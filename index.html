@@ -32,8 +32,8 @@
             justify-content: center; 
             align-items: center; 
             right: 10px;
-            bottom: 10px; 
-            top: auto; 
+            bottom: 10px;
+            top: auto;
             left: auto;
         }
         #controlsContainer.minimized #controls { display: none; }
@@ -74,18 +74,28 @@
             display: none; 
         }
         .control-group { margin-bottom: 10px; }
-        #leftJoystick, #rightJoystick {
-            position: absolute;
-            bottom: 20px;
-            width: 100px;
-            height: 100px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            z-index: 100;
+        .joystick { 
+            position: absolute; 
+            bottom: 50px; 
+            background: rgba(255, 255, 255, 0.5); 
+            border-radius: 50%; 
+            width: 100px; 
+            height: 100px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            user-select: none; 
+            touch-action: none;
         }
-        #leftJoystick { left: 20px; }
-        #rightJoystick { right: 20px; }
-        #toolbar {
+        .joystick div { 
+            width: 50px; 
+            height: 50px; 
+            background: rgba(0, 0, 0, 0.5); 
+            border-radius: 50%; 
+        }
+        .joystick.left { left: 50px; }
+        .joystick.right { right: 50px; }
+        .toolbar {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -94,9 +104,15 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
-        #toolbar button {
+        .toolbar button {
             display: block;
-            margin-bottom: 5px;
+            width: 30px;
+            height: 30px;
+            margin-bottom: 10px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -136,264 +152,291 @@
                     <option value="">-- None --</option>
                 </select>
             </div>
+            <div class="control-group">
+                <label>Move X:</label>
+                <input type="range" id="moveX" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
+            </div>
+            <div class="control-group">
+                <label>Move Y:</label>
+                <input type="range" id="moveY" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
+            </div>
+            <div class="control-group">
+                <label>Move Z:</label>
+                <input type="range" id="moveZ" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
+            </div>
+            <div class="control-group">
+                <label>Scale X:</label>
+                <input type="range" id="scaleX" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
+            </div>
+            <div class="control-group">
+                <label>Scale Y:</label>
+                <input type="range" id="scaleY" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
+            </div>
+            <div class="control-group">
+                <label>Scale Z:</label>
+                <input type="range" id="scaleZ" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
+            </div>
+            <div id="codeOutput"></div>
         </div>
-        <div id="codeOutput"></div>
     </div>
-    <div id="leftJoystick"></div>
-    <div id="rightJoystick"></div>
-    <div id="toolbar">
-        <button onclick="setTransformMode('translate')">Move</button>
-        <button onclick="setTransformMode('rotate')">Rotate</button>
-        <button onclick="setTransformMode('scale')">Scale</button>
+    <div class="toolbar">
+        <button onclick="useMoveTool()">M</button>
+        <button onclick="useRotateTool()">R</button>
+        <button onclick="useScaleTool()">S</button>
+    </div>
+    <div class="joystick left">
+        <div></div>
+    </div>
+    <div class="joystick right">
+        <div></div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.7.3/nipplejs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script>
+        // Setup scene, camera, and renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('container').appendChild(renderer.domElement);
 
+        // Add a basic ambient light
         const light = new THREE.AmbientLight(0x404040);
         scene.add(light);
 
+        // Position the camera
         camera.position.z = 5;
 
+        // Variables for shape management
         const shapes = [];
         const shapeDetails = [];
         let selectedShape = null;
-        let isRightMouseDown = false;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
+        let controlsMinimized = false;
 
-        const transformControls = new THREE.TransformControls(camera, renderer.domElement);
-        scene.add(transformControls);
+        // Variables for tool management
+        let activeTool = 'move';
 
+        // Function to add a shape to the scene
         function addShape() {
             const shapeType = document.getElementById('shape').value;
             const color = document.getElementById('color').value;
-            let geometry;
+            let shape;
 
             switch (shapeType) {
                 case 'cube':
-                    geometry = new THREE.BoxGeometry(1, 1, 1);
+                    shape = new THREE.Mesh(
+                        new THREE.BoxGeometry(1, 1, 1),
+                        new THREE.MeshBasicMaterial({ color: color })
+                    );
                     break;
                 case 'sphere':
-                    geometry = new THREE.SphereGeometry(1, 32, 32);
+                    shape = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.5, 32, 32),
+                        new THREE.MeshBasicMaterial({ color: color })
+                    );
                     break;
                 case 'cylinder':
-                    geometry = new THREE.CylinderGeometry(1, 1, 2, 32);
+                    shape = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.5, 0.5, 1, 32),
+                        new THREE.MeshBasicMaterial({ color: color })
+                    );
                     break;
+                default:
+                    return;
             }
 
-            const material = new THREE.MeshBasicMaterial({ color: color });
-            const shape = new THREE.Mesh(geometry, material);
-            scene.add(shape);
             shapes.push(shape);
-
             shapeDetails.push({
                 type: shapeType,
                 color: color,
-                scale: shape.scale.toArray(),
-                position: shape.position.toArray()
+                position: [0, 0, 0],
+                scale: [1, 1, 1]
             });
-
-            const shapeSelect = document.getElementById('shapeSelect');
-            const option = document.createElement('option');
-            option.value = shapes.length - 1;
-            option.textContent = `Shape ${shapes.length}`;
-            shapeSelect.appendChild(option);
+            scene.add(shape);
+            updateShapeSelectOptions();
         }
 
+        // Function to remove the selected shape from the scene
         function removeShape() {
-            const shape = shapes.pop();
-            if (shape) {
-                scene.remove(shape);
-                shape.geometry.dispose();
-                shape.material.dispose();
-                shapeDetails.pop();
-
-                const shapeSelect = document.getElementById('shapeSelect');
-                shapeSelect.remove(shapeSelect.options.length - 1);
+            if (selectedShape) {
+                scene.remove(selectedShape);
+                const shapeIndex = shapes.indexOf(selectedShape);
+                shapes.splice(shapeIndex, 1);
+                shapeDetails.splice(shapeIndex, 1);
+                selectedShape = null;
+                updateShapeSelectOptions();
             }
         }
 
+        // Function to clear all shapes from the scene
         function clearAllShapes() {
-            shapes.forEach(shape => {
-                scene.remove(shape);
-                shape.geometry.dispose();
-                shape.material.dispose();
-            });
-
+            shapes.forEach(shape => scene.remove(shape));
             shapes.length = 0;
             shapeDetails.length = 0;
+            selectedShape = null;
+            updateShapeSelectOptions();
+        }
 
+        // Function to update shape selection dropdown options
+        function updateShapeSelectOptions() {
             const shapeSelect = document.getElementById('shapeSelect');
-            while (shapeSelect.options.length > 1) {
-                shapeSelect.remove(1);
-            }
-        }
-
-        function selectShape() {
-            const shapeIndex = document.getElementById('shapeSelect').value;
-            selectedShape = shapeIndex !== '' ? shapes[shapeIndex] : null;
-
-            if (selectedShape) {
-                transformControls.attach(selectedShape);
-            } else {
-                transformControls.detach();
-            }
-        }
-
-        function generateCode() {
-            let code = `using UnityEngine;\n\npublic class ShapeCreator : MonoBehaviour\n{\n    void Start()\n    {\n`;
-
-            shapeDetails.forEach((shape, index) => {
-                let shapeCode = `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)});\n`;
-                shapeCode += `        shape${index}.transform.localScale = new Vector3(${shape.scale[0].toFixed(2)}, ${shape.scale[1].toFixed(2)}, ${shape.scale[2].toFixed(2)});\n`;
-                shapeCode += `        shape${index}.transform.localPosition = new Vector3(${shape.position[0].toFixed(2)}, ${shape.position[1].toFixed(2)}, ${shape.position[2].toFixed(2)});\n`;
-                shapeCode += `        shape${index}.GetComponent<Renderer>().material.color = ColorUtility.TryParseHtmlString("${shape.color}", out Color color) ? color : Color.white;\n`;
-                shapeCode += `\n`;
-
-                code += shapeCode;
+            shapeSelect.innerHTML = '<option value="">-- None --</option>';
+            shapes.forEach((shape, index) => {
+                shapeSelect.innerHTML += `<option value="${index}">Shape ${index + 1}</option>`;
             });
+        }
 
-            code += `    }\n}\n`;
+        // Function to select a shape
+        function selectShape() {
+            const shapeSelect = document.getElementById('shapeSelect');
+            const shapeIndex = shapeSelect.value;
+            if (shapeIndex !== '') {
+                selectedShape = shapes[shapeIndex];
+                const details = shapeDetails[shapeIndex];
 
+                // Update sliders with selected shape details
+                document.getElementById('moveX').value = details.position[0];
+                document.getElementById('moveY').value = details.position[1];
+                document.getElementById('moveZ').value = details.position[2];
+                document.getElementById('scaleX').value = details.scale[0];
+                document.getElementById('scaleY').value = details.scale[1];
+                document.getElementById('scaleZ').value = details.scale[2];
+            } else {
+                selectedShape = null;
+            }
+        }
+
+        // Function to move the selected shape
+        function moveShape() {
+            if (selectedShape) {
+                selectedShape.position.set(
+                    parseFloat(document.getElementById('moveX').value),
+                    parseFloat(document.getElementById('moveY').value),
+                    parseFloat(document.getElementById('moveZ').value)
+                );
+                updateShapeDetails();
+            }
+        }
+
+        // Function to scale the selected shape
+        function scaleShape() {
+            if (selectedShape) {
+                selectedShape.scale.set(
+                    parseFloat(document.getElementById('scaleX').value),
+                    parseFloat(document.getElementById('scaleY').value),
+                    parseFloat(document.getElementById('scaleZ').value)
+                );
+                updateShapeDetails();
+            }
+        }
+
+        // Function to update the shape details
+        function updateShapeDetails() {
+            const shapeSelect = document.getElementById('shapeSelect');
+            const shapeIndex = shapeSelect.value;
+            if (shapeIndex !== '') {
+                const details = shapeDetails[shapeIndex];
+                details.position = selectedShape.position.toArray();
+                details.scale = selectedShape.scale.toArray();
+            }
+        }
+
+        // Function to generate C# code
+        function generateCode() {
+            let code = '';
+            shapeDetails.forEach((details, index) => {
+                code += `// Shape ${index + 1}\n`;
+                code += `GameObject shape${index + 1} = GameObject.CreatePrimitive(PrimitiveType.${details.type.toUpperCase()});\n`;
+                code += `shape${index + 1}.transform.position = new Vector3(${details.position[0]}, ${details.position[1]}, ${details.position[2]});\n`;
+                code += `shape${index + 1}.transform.localScale = new Vector3(${details.scale[0]}, ${details.scale[1]}, ${details.scale[2]});\n`;
+                code += `shape${index + 1}.GetComponent<Renderer>().material.color = new Color(${new THREE.Color(details.color).r}, ${new THREE.Color(details.color).g}, ${new THREE.Color(details.color).b});\n\n`;
+            });
             document.getElementById('codeOutput').textContent = code;
         }
 
+        // Function to toggle code visibility
         function toggleCodeVisibility() {
             const codeOutput = document.getElementById('codeOutput');
             codeOutput.style.display = codeOutput.style.display === 'none' ? 'block' : 'none';
         }
 
+        // Function to minimize controls
         function minimizeControls() {
             document.getElementById('controlsContainer').classList.add('minimized');
+            controlsMinimized = true;
         }
 
+        // Function to restore controls
         function restoreControls() {
             document.getElementById('controlsContainer').classList.remove('minimized');
+            controlsMinimized = false;
         }
 
-        document.addEventListener('keydown', function(event) {
-            switch (event.key) {
-                case 'w':
-                    camera.position.z -= 0.1;
-                    break;
-                case 's':
-                    camera.position.z += 0.1;
-                    break;
-                case 'a':
-                    camera.position.x -= 0.1;
-                    break;
-                case 'd':
-                    camera.position.x += 0.1;
-                    break;
-            }
-        });
-
-        document.addEventListener('mousedown', function(event) {
-            if (event.button === 2) {
-                isRightMouseDown = true;
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-                event.preventDefault();
-            }
-        });
-
-        document.addEventListener('mouseup', function(event) {
-            if (event.button === 2) {
-                isRightMouseDown = false;
-            }
-        });
-
-        document.addEventListener('mousemove', function(event) {
-            if (isRightMouseDown) {
-                const deltaX = event.clientX - lastMouseX;
-                const deltaY = event.clientY - lastMouseY;
-
-                camera.rotation.y -= deltaX * 0.005;
-                camera.rotation.x -= deltaY * 0.005;
-
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-            }
-        });
-
-        const leftJoystick = nipplejs.create({
-            zone: document.getElementById('leftJoystick'),
-            mode: 'static',
-            position: { left: '50%', bottom: '50%' },
-            color: 'blue',
-        });
-
-        const rightJoystick = nipplejs.create({
-            zone: document.getElementById('rightJoystick'),
-            mode: 'static',
-            position: { right: '50%', bottom: '50%' },
-            color: 'red',
-        });
-
-        leftJoystick.on('move', (evt, data) => {
-            if (data.direction) {
-                switch (data.direction.angle) {
-                    case 'up':
-                        camera.position.z -= 0.1;
-                        break;
-                    case 'down':
-                        camera.position.z += 0.1;
-                        break;
-                    case 'left':
-                        camera.position.x -= 0.1;
-                        break;
-                    case 'right':
-                        camera.position.x += 0.1;
-                        break;
-                }
-            }
-        });
-
-        rightJoystick.on('move', (evt, data) => {
-            if (data.direction) {
-                switch (data.direction.angle) {
-                    case 'up':
-                        camera.rotation.x -= 0.005;
-                        break;
-                    case 'down':
-                        camera.rotation.x += 0.005;
-                        break;
-                    case 'left':
-                        camera.rotation.y -= 0.005;
-                        break;
-                    case 'right':
-                        camera.rotation.y += 0.005;
-                        break;
-                }
-            }
-        });
-
-        function setTransformMode(mode) {
-            transformControls.setMode(mode);
+        // Function to use the move tool
+        function useMoveTool() {
+            activeTool = 'move';
         }
 
+        // Function to use the rotate tool
+        function useRotateTool() {
+            activeTool = 'rotate';
+        }
+
+        // Function to use the scale tool
+        function useScaleTool() {
+            activeTool = 'scale';
+        }
+
+        // Render loop
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
         }
         animate();
 
+        // Adjust canvas size on window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        document.addEventListener('contextmenu', function(event) {
+        // Add joystick controls
+        const joystickLeft = document.querySelector('.joystick.left div');
+        const joystickRight = document.querySelector('.joystick.right div');
+
+        joystickLeft.addEventListener('touchstart', handleJoystickStart, false);
+        joystickLeft.addEventListener('touchmove', handleJoystickMove, false);
+        joystickLeft.addEventListener('touchend', handleJoystickEnd, false);
+        joystickRight.addEventListener('touchstart', handleJoystickStart, false);
+        joystickRight.addEventListener('touchmove', handleJoystickMove, false);
+        joystickRight.addEventListener('touchend', handleJoystickEnd, false);
+
+        function handleJoystickStart(event) {
             event.preventDefault();
-        });
+        }
+
+        function handleJoystickMove(event) {
+            event.preventDefault();
+            const touch = event.targetTouches[0];
+            const rect = event.target.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            // Handle joystick movement
+            // Example: Move the selected shape based on joystick input
+            if (selectedShape) {
+                if (event.target.parentElement.classList.contains('left')) {
+                    selectedShape.position.x += (x / rect.width - 0.5) * 0.1;
+                    selectedShape.position.z += (y / rect.height - 0.5) * 0.1;
+                } else {
+                    selectedShape.position.y += (y / rect.height - 0.5) * 0.1;
+                }
+                updateShapeDetails();
+            }
+        }
+
+        function handleJoystickEnd(event) {
+            event.preventDefault();
+        }
     </script>
 </body>
 </html>
