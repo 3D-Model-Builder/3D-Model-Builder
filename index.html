@@ -30,8 +30,8 @@
             justify-content: center; 
             align-items: center; 
             right: 10px;
-            bottom: 10px;
-            top: auto;
+            bottom: 10px; 
+            top: auto; 
             left: auto;
         }
         #controlsContainer.minimized #controls { display: none; }
@@ -139,27 +139,25 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // Setup scene, camera, and renderer
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('container').appendChild(renderer.domElement);
 
-        // Add a basic ambient light
         const light = new THREE.AmbientLight(0x404040);
         scene.add(light);
 
-        // Position the camera
         camera.position.z = 5;
 
-        // Variables for shape management
         const shapes = [];
         const shapeDetails = [];
         let selectedShape = null;
         let controlsMinimized = false;
+        let isRightMouseDown = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
 
-        // Function to add a shape to the scene
         function addShape() {
             const shapeType = document.getElementById('shape').value;
             const color = document.getElementById('color').value;
@@ -182,7 +180,6 @@
             scene.add(shape);
             shapes.push(shape);
 
-            // Store shape details
             shapeDetails.push({
                 type: shapeType,
                 color: color,
@@ -198,7 +195,6 @@
             shapeSelect.appendChild(option);
         }
 
-        // Function to remove the last shape
         function removeShape() {
             const shape = shapes.pop();
             if (shape) {
@@ -213,7 +209,6 @@
             }
         }
 
-        // Function to clear all shapes
         function clearAllShapes() {
             shapes.forEach(shape => {
                 scene.remove(shape);
@@ -228,7 +223,6 @@
             shapeSelect.innerHTML = '<option value="">-- None --</option>';
         }
 
-        // Function to select a shape for transformation
         function selectShape() {
             const index = parseInt(document.getElementById('shapeSelect').value);
             selectedShape = shapes[index] || null;
@@ -250,7 +244,6 @@
             }
         }
 
-        // Function to move the selected shape
         function moveShape() {
             if (selectedShape) {
                 selectedShape.position.set(
@@ -262,7 +255,6 @@
             }
         }
 
-        // Function to scale the selected shape
         function scaleShape() {
             if (selectedShape) {
                 selectedShape.scale.set(
@@ -274,7 +266,6 @@
             }
         }
 
-        // Function to generate C# code
         function generateCode() {
             let code = `using UnityEngine;\n\npublic class ShapeCreator : MonoBehaviour\n{\n    void Start()\n    {\n`;
 
@@ -308,23 +299,22 @@
             document.getElementById('codeOutput').textContent = code;
         }
 
-        // Function to toggle code visibility
+
         function toggleCodeVisibility() {
             const codeOutput = document.getElementById('codeOutput');
             codeOutput.style.display = codeOutput.style.display === 'none' ? 'block' : 'none';
         }
 
-        // Function to minimize the controls panel
         function minimizeControls() {
             document.getElementById('controlsContainer').classList.add('minimized');
         }
 
-        // Function to restore the controls panel
+
         function restoreControls() {
             document.getElementById('controlsContainer').classList.remove('minimized');
         }
 
-        // Camera controls with WASD
+
         let moveSpeed = 0.1;
         document.addEventListener('keydown', function(event) {
             switch (event.key) {
@@ -343,18 +333,51 @@
             }
         });
 
-        // Render loop
+
+        document.addEventListener('mousedown', function(event) {
+            if (event.button === 2) { // Right mouse button
+                isRightMouseDown = true;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+                event.preventDefault(); // Prevent context menu
+            }
+        });
+
+        document.addEventListener('mouseup', function(event) {
+            if (event.button === 2) {
+                isRightMouseDown = false;
+            }
+        });
+
+        document.addEventListener('mousemove', function(event) {
+            if (isRightMouseDown) {
+                const deltaX = event.clientX - lastMouseX;
+                const deltaY = event.clientY - lastMouseY;
+
+                // Update camera rotation
+                camera.rotation.y -= deltaX * 0.005;
+                camera.rotation.x -= deltaY * 0.005;
+
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            }
+        });
+
+
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
         }
         animate();
 
-        // Handle window resizing
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
         });
     </script>
 </body>
