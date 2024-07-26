@@ -85,6 +85,19 @@
         }
         #leftJoystick { left: 20px; }
         #rightJoystick { right: 20px; }
+        #toolbar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        #toolbar button {
+            display: block;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -123,37 +136,19 @@
                     <option value="">-- None --</option>
                 </select>
             </div>
-            <div class="control-group">
-                <label>Move X:</label>
-                <input type="range" id="moveX" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
-            </div>
-            <div class="control-group">
-                <label>Move Y:</label>
-                <input type="range" id="moveY" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
-            </div>
-            <div class="control-group">
-                <label>Move Z:</label>
-                <input type="range" id="moveZ" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
-            </div>
-            <div class="control-group">
-                <label>Scale X:</label>
-                <input type="range" id="scaleX" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
-            </div>
-            <div class="control-group">
-                <label>Scale Y:</label>
-                <input type="range" id="scaleY" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
-            </div>
-            <div class="control-group">
-                <label>Scale Z:</label>
-                <input type="range" id="scaleZ" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
-            </div>
-            <div id="codeOutput"></div>
         </div>
+        <div id="codeOutput"></div>
     </div>
     <div id="leftJoystick"></div>
     <div id="rightJoystick"></div>
+    <div id="toolbar">
+        <button onclick="setTransformMode('translate')">Move</button>
+        <button onclick="setTransformMode('rotate')">Rotate</button>
+        <button onclick="setTransformMode('scale')">Scale</button>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.7.3/nipplejs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <script>
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -169,10 +164,12 @@
         const shapes = [];
         const shapeDetails = [];
         let selectedShape = null;
-        let controlsMinimized = false;
         let isRightMouseDown = false;
         let lastMouseX = 0;
         let lastMouseY = 0;
+
+        const transformControls = new THREE.TransformControls(camera, renderer.domElement);
+        scene.add(transformControls);
 
         function addShape() {
             const shapeType = document.getElementById('shape').value;
@@ -244,41 +241,9 @@
             selectedShape = shapeIndex !== '' ? shapes[shapeIndex] : null;
 
             if (selectedShape) {
-                document.getElementById('moveX').value = selectedShape.position.x;
-                document.getElementById('moveY').value = selectedShape.position.y;
-                document.getElementById('moveZ').value = selectedShape.position.z;
-                document.getElementById('scaleX').value = selectedShape.scale.x;
-                document.getElementById('scaleY').value = selectedShape.scale.y;
-                document.getElementById('scaleZ').value = selectedShape.scale.z;
+                transformControls.attach(selectedShape);
             } else {
-                document.getElementById('moveX').value = 0;
-                document.getElementById('moveY').value = 0;
-                document.getElementById('moveZ').value = 0;
-                document.getElementById('scaleX').value = 1;
-                document.getElementById('scaleY').value = 1;
-                document.getElementById('scaleZ').value = 1;
-            }
-        }
-
-        function moveShape() {
-            if (selectedShape) {
-                selectedShape.position.set(
-                    parseFloat(document.getElementById('moveX').value),
-                    parseFloat(document.getElementById('moveY').value),
-                    parseFloat(document.getElementById('moveZ').value)
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].position = selectedShape.position.toArray();
-            }
-        }
-
-        function scaleShape() {
-            if (selectedShape) {
-                selectedShape.scale.set(
-                    parseFloat(document.getElementById('scaleX').value),
-                    parseFloat(document.getElementById('scaleY').value),
-                    parseFloat(document.getElementById('scaleZ').value)
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].scale = selectedShape.scale.toArray();
+                transformControls.detach();
             }
         }
 
@@ -409,6 +374,10 @@
                 }
             }
         });
+
+        function setTransformMode(mode) {
+            transformControls.setMode(mode);
+        }
 
         function animate() {
             requestAnimationFrame(animate);
