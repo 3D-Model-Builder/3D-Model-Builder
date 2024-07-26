@@ -18,6 +18,8 @@
             transition: all 0.3s ease;
             width: 300px;
             height: auto;
+            resize: both;
+            overflow: auto;
         }
         #controlsContainer.minimized { 
             width: 50px; 
@@ -157,6 +159,9 @@
         let isRightMouseDown = false;
         let lastMouseX = 0;
         let lastMouseY = 0;
+        let isTouching = false;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
 
         function addShape() {
             const shapeType = document.getElementById('shape').value;
@@ -337,6 +342,33 @@
                 lastMouseX = event.clientX;
                 lastMouseY = event.clientY;
             }
+        });
+
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length === 1) {
+                isTouching = true;
+                lastTouchX = event.touches[0].clientX;
+                lastTouchY = event.touches[0].clientY;
+                event.preventDefault();
+            }
+        });
+
+        document.addEventListener('touchmove', function(event) {
+            if (isTouching) {
+                const touch = event.touches[0];
+                const deltaX = touch.clientX - lastTouchX;
+                const deltaY = touch.clientY - lastTouchY;
+
+                camera.rotation.y -= deltaX * 0.005;
+                camera.rotation.x -= deltaY * 0.005;
+
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+            }
+        });
+
+        document.addEventListener('touchend', function(event) {
+            isTouching = false;
         });
 
         function animate() {
