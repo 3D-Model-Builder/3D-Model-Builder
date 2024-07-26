@@ -74,6 +74,17 @@
             display: none; 
         }
         .control-group { margin-bottom: 10px; }
+        #leftJoystick, #rightJoystick {
+            position: absolute;
+            bottom: 20px;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            z-index: 100;
+        }
+        #leftJoystick { left: 20px; }
+        #rightJoystick { right: 20px; }
     </style>
 </head>
 <body>
@@ -139,7 +150,10 @@
             <div id="codeOutput"></div>
         </div>
     </div>
+    <div id="leftJoystick"></div>
+    <div id="rightJoystick"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.7.3/nipplejs.min.js"></script>
     <script>
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -159,9 +173,6 @@
         let isRightMouseDown = false;
         let lastMouseX = 0;
         let lastMouseY = 0;
-        let isTouching = false;
-        let lastTouchX = 0;
-        let lastTouchY = 0;
 
         function addShape() {
             const shapeType = document.getElementById('shape').value;
@@ -218,16 +229,19 @@
                 shape.geometry.dispose();
                 shape.material.dispose();
             });
+
             shapes.length = 0;
             shapeDetails.length = 0;
 
             const shapeSelect = document.getElementById('shapeSelect');
-            shapeSelect.innerHTML = '<option value="">-- None --</option>';
+            while (shapeSelect.options.length > 1) {
+                shapeSelect.remove(1);
+            }
         }
 
         function selectShape() {
-            const index = parseInt(document.getElementById('shapeSelect').value);
-            selectedShape = shapes[index] || null;
+            const shapeIndex = document.getElementById('shapeSelect').value;
+            selectedShape = shapeIndex !== '' ? shapes[shapeIndex] : null;
 
             if (selectedShape) {
                 document.getElementById('moveX').value = selectedShape.position.x;
@@ -344,31 +358,56 @@
             }
         });
 
-        document.addEventListener('touchstart', function(event) {
-            if (event.touches.length === 1) {
-                isTouching = true;
-                lastTouchX = event.touches[0].clientX;
-                lastTouchY = event.touches[0].clientY;
-                event.preventDefault();
+        const leftJoystick = nipplejs.create({
+            zone: document.getElementById('leftJoystick'),
+            mode: 'static',
+            position: { left: '50%', bottom: '50%' },
+            color: 'blue',
+        });
+
+        const rightJoystick = nipplejs.create({
+            zone: document.getElementById('rightJoystick'),
+            mode: 'static',
+            position: { right: '50%', bottom: '50%' },
+            color: 'red',
+        });
+
+        leftJoystick.on('move', (evt, data) => {
+            if (data.direction) {
+                switch (data.direction.angle) {
+                    case 'up':
+                        camera.position.z -= 0.1;
+                        break;
+                    case 'down':
+                        camera.position.z += 0.1;
+                        break;
+                    case 'left':
+                        camera.position.x -= 0.1;
+                        break;
+                    case 'right':
+                        camera.position.x += 0.1;
+                        break;
+                }
             }
         });
 
-        document.addEventListener('touchmove', function(event) {
-            if (isTouching) {
-                const touch = event.touches[0];
-                const deltaX = touch.clientX - lastTouchX;
-                const deltaY = touch.clientY - lastTouchY;
-
-                camera.rotation.y -= deltaX * 0.005;
-                camera.rotation.x -= deltaY * 0.005;
-
-                lastTouchX = touch.clientX;
-                lastTouchY = touch.clientY;
+        rightJoystick.on('move', (evt, data) => {
+            if (data.direction) {
+                switch (data.direction.angle) {
+                    case 'up':
+                        camera.rotation.x -= 0.005;
+                        break;
+                    case 'down':
+                        camera.rotation.x += 0.005;
+                        break;
+                    case 'left':
+                        camera.rotation.y -= 0.005;
+                        break;
+                    case 'right':
+                        camera.rotation.y += 0.005;
+                        break;
+                }
             }
-        });
-
-        document.addEventListener('touchend', function(event) {
-            isTouching = false;
         });
 
         function animate() {
