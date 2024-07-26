@@ -145,8 +145,18 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('container').appendChild(renderer.domElement);
 
-        const light = new THREE.AmbientLight(0x404040);
-        scene.add(light);
+        // Add grid helper
+        const gridHelper = new THREE.GridHelper(20, 20);
+        gridHelper.rotation.x = Math.PI / 2;
+        scene.add(gridHelper);
+
+        // Add ambient and directional light
+        const ambientLight = new THREE.AmbientLight(0x404040); // soft white light
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 10, 7.5).normalize();
+        scene.add(directionalLight);
 
         camera.position.z = 5;
 
@@ -175,7 +185,7 @@
                     break;
             }
 
-            const material = new THREE.MeshBasicMaterial({ color: color });
+            const material = new THREE.MeshStandardMaterial({ color: color });
             const shape = new THREE.Mesh(geometry, material);
             scene.add(shape);
             shapes.push(shape);
@@ -203,7 +213,7 @@
                 shapeDetails.pop();
 
                 const shapeSelect = document.getElementById('shapeSelect');
-                shapeSelect.remove(shapeSelect.options.length - 1);
+                shapeSelect.remove(shapeSelect.selectedIndex);
             }
         }
 
