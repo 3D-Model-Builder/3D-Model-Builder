@@ -134,6 +134,18 @@
                 <label>Scale Z:</label>
                 <input type="range" id="scaleZ" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
             </div>
+            <div class="control-group">
+                <label>Rotate X:</label>
+                <input type="range" id="rotateX" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
+            </div>
+            <div class="control-group">
+                <label>Rotate Y:</label>
+                <input type="range" id="rotateY" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
+            </div>
+            <div class="control-group">
+                <label>Rotate Z:</label>
+                <input type="range" id="rotateZ" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
+            </div>
             <div id="codeOutput"></div>
         </div>
     </div>
@@ -188,29 +200,32 @@
             const material = new THREE.MeshStandardMaterial({ color: color });
             const shape = new THREE.Mesh(geometry, material);
             scene.add(shape);
-            shapes.push(shape);
 
+            shapes.push(shape);
             shapeDetails.push({
                 type: shapeType,
                 color: color,
+                position: shape.position.toArray(),
                 scale: shape.scale.toArray(),
-                position: shape.position.toArray()
+                rotation: shape.rotation.toArray()
             });
 
             const shapeSelect = document.getElementById('shapeSelect');
             const option = document.createElement('option');
             option.value = shapes.length - 1;
-            option.textContent = `Shape ${shapes.length}`;
+            option.textContent = `Shape ${shapes.length - 1}`;
             shapeSelect.appendChild(option);
         }
 
         function removeShape() {
-            const shape = shapes.pop();
-            if (shape) {
-                scene.remove(shape);
-                shape.geometry.dispose();
-                shape.material.dispose();
-                shapeDetails.pop();
+            if (selectedShape) {
+                scene.remove(selectedShape);
+                selectedShape.geometry.dispose();
+                selectedShape.material.dispose();
+
+                const index = shapes.indexOf(selectedShape);
+                shapes.splice(index, 1);
+                shapeDetails.splice(index, 1);
 
                 const shapeSelect = document.getElementById('shapeSelect');
                 shapeSelect.remove(shapeSelect.selectedIndex);
@@ -241,6 +256,9 @@
                 document.getElementById('scaleX').value = selectedShape.scale.x;
                 document.getElementById('scaleY').value = selectedShape.scale.y;
                 document.getElementById('scaleZ').value = selectedShape.scale.z;
+                document.getElementById('rotateX').value = THREE.MathUtils.radToDeg(selectedShape.rotation.x);
+                document.getElementById('rotateY').value = THREE.MathUtils.radToDeg(selectedShape.rotation.y);
+                document.getElementById('rotateZ').value = THREE.MathUtils.radToDeg(selectedShape.rotation.z);
             } else {
                 document.getElementById('moveX').value = 0;
                 document.getElementById('moveY').value = 0;
@@ -248,6 +266,9 @@
                 document.getElementById('scaleX').value = 1;
                 document.getElementById('scaleY').value = 1;
                 document.getElementById('scaleZ').value = 1;
+                document.getElementById('rotateX').value = 0;
+                document.getElementById('rotateY').value = 0;
+                document.getElementById('rotateZ').value = 0;
             }
         }
 
@@ -273,6 +294,17 @@
             }
         }
 
+        function rotateShape() {
+            if (selectedShape) {
+                selectedShape.rotation.set(
+                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateX').value)),
+                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateY').value)),
+                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateZ').value))
+                );
+                shapeDetails[shapes.indexOf(selectedShape)].rotation = selectedShape.rotation.toArray();
+            }
+        }
+
         function generateCode() {
             let code = `using UnityEngine;\n\npublic class ShapeCreator : MonoBehaviour\n{\n    void Start()\n    {\n`;
 
@@ -280,6 +312,7 @@
                 let shapeCode = `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)});\n`;
                 shapeCode += `        shape${index}.transform.localScale = new Vector3(${shape.scale[0].toFixed(2)}, ${shape.scale[1].toFixed(2)}, ${shape.scale[2].toFixed(2)});\n`;
                 shapeCode += `        shape${index}.transform.localPosition = new Vector3(${shape.position[0].toFixed(2)}, ${shape.position[1].toFixed(2)}, ${shape.position[2].toFixed(2)});\n`;
+                shapeCode += `        shape${index}.transform.localRotation = Quaternion.Euler(${shape.rotation[0].toFixed(2)}, ${shape.rotation[1].toFixed(2)}, ${shape.rotation[2].toFixed(2)});\n`;
                 shapeCode += `        shape${index}.GetComponent<Renderer>().material.color = ColorUtility.TryParseHtmlString("${shape.color}", out Color color) ? color : Color.white;\n`;
                 shapeCode += `\n`;
 
