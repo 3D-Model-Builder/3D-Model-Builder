@@ -82,7 +82,7 @@
         }
         .grid-line {
             position: absolute;
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(50, 50, 50, 0.8); /* Dark gray grid lines */
         }
     </style>
 </head>
@@ -168,22 +168,24 @@
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // Enable shadow maps
         document.getElementById('container').appendChild(renderer.domElement);
 
         // Create a grid
-        const gridHelper = new THREE.GridHelper(100, 10);
+        const gridHelper = new THREE.GridHelper(100, 10, 0x333333, 0x333333); // Dark gray grid
         gridHelper.position.y = -0.01; // Slightly below the origin to avoid clipping issues
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
         scene.add(gridHelper);
 
         // Create a background
-        scene.background = new THREE.Color(0xeeeeee); // Light grey background
+        scene.background = new THREE.Color(0xaaaaaa); // Light grey background
 
-        const light = new THREE.AmbientLight(0xffffff, 0.8);
+        const light = new THREE.AmbientLight(0xffffff, 0.4); // Dim ambient light
         scene.add(light);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
         directionalLight.position.set(5, 10, 5).normalize();
+        directionalLight.castShadow = true; // Enable shadows
         scene.add(directionalLight);
 
         camera.position.z = 5;
@@ -202,8 +204,8 @@
         function addShape() {
             const shapeType = document.getElementById('shape').value;
             const color = document.getElementById('color').value;
-            let geometry;
 
+            let geometry;
             switch (shapeType) {
                 case 'cube':
                     geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -218,6 +220,8 @@
 
             const material = new THREE.MeshStandardMaterial({ color: color });
             const shape = new THREE.Mesh(geometry, material);
+            shape.castShadow = true; // Enable casting shadows
+            shape.receiveShadow = true; // Enable receiving shadows
             shapesGroup.add(shape);
             shapes.push(shape);
 
