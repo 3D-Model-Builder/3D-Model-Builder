@@ -451,14 +451,17 @@
 
         function copyCode() {
     const codeOutput = document.getElementById('codeOutput');
-    const textArea = document.createElement('textarea');
-    textArea.value = codeOutput.textContent;
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
-    alert('Code copied to clipboard!');
-}
+    
+    // Create a temporary textarea element
+    const textarea = document.createElement('textarea');
+    textarea.value = codeOutput.textContent; // Set the value to the code output text
+    document.body.appendChild(textarea); // Append the textarea to the body
+    textarea.select(); // Select the textarea content
+    document.execCommand('copy'); // Execute the copy command
+    document.body.removeChild(textarea); // Remove the textarea from the body
+
+    alert('Code copied to clipboard!'); // Optional: Show a confirmation alert
+        }
 
         function animate() {
             requestAnimationFrame(animate);
