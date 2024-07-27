@@ -162,7 +162,7 @@
             
         </div>
             <div class="control-group">
-                <button onclick="copyCode()">Copy Code</button>
+                <button onclick="copyToClipboard()">Copy Code</button>
             </div>
          <div id="codeOutput"></div>
 
@@ -449,7 +449,7 @@
             }
         });
 
-        function copyCode() {
+        function copyToClipboard() {
     const codeOutput = document.getElementById('codeOutput');
     
     // Create a temporary textarea element
@@ -461,7 +461,8 @@
     document.body.removeChild(textarea); // Remove the textarea from the body
 
     alert('Code copied to clipboard!'); // Optional: Show a confirmation alert
-        }
+}
+
 
         function animate() {
             requestAnimationFrame(animate);
