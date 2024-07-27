@@ -159,7 +159,13 @@
                 <input type="range" id="rotateZ" min="-180" max="18" step="1" value="0" oninput="rotateShape()">
             </div>
             <div id="codeOutput"></div>
+            
         </div>
+            <div class="control-group">
+                <button onclick="copyCode()">Copy Code</button>
+            </div>
+         <div id="codeOutput"></div>
+
     </div>
     <div id="bottomGrid"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -442,6 +448,17 @@
                 lastMouseY = event.clientY;
             }
         });
+
+        function copyCode() {
+    const codeOutput = document.getElementById('codeOutput');
+    const textArea = document.createElement('textarea');
+    textArea.value = codeOutput.textContent;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    alert('Code copied to clipboard!');
+}
 
         function animate() {
             requestAnimationFrame(animate);
