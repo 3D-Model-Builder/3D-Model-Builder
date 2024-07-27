@@ -3,203 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Model Builder</title>
+    <title>3D Shape Creator</title>
     <style>
         body { margin: 0; overflow: hidden; }
-        #container { width: 100vw; height: 100vh; }
-        #controlsContainer { 
-            position: absolute; 
-            top: 10px; 
-            left: 10px; 
-            background: #fff; 
-            padding: 10px; 
-            border-radius: 5px; 
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); 
-            transition: all 0.3s ease;
-            width: 300px;
-            height: auto;
-        }
-        #controlsContainer.minimized { 
-            width: 50px; 
-            height: 50px; 
-            overflow: hidden; 
-            border-radius: 50%; 
-            padding: 0; 
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            right: 10px;
-            bottom: 10px; 
-            top: auto; 
-            left: auto;
-        }
-        #controlsContainer.minimized #controls { display: none; }
-        #controlsContainer.minimized #restoreButton { display: block; }
-        #controlsContainer #minimizeButton { 
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
-            width: 30px; 
-            height: 30px; 
-            background: #f0f0f0; 
-            border: none; 
-            border-radius: 50%; 
-            cursor: pointer; 
-        }
-        #controlsContainer #restoreButton { 
-            display: none; 
-            position: absolute; 
-            bottom: 10px; 
-            right: 10px; 
-            width: 30px; 
-            height: 30px; 
-            background: #f0f0f0; 
-            border: none; 
-            border-radius: 50%; 
-            cursor: pointer; 
-        }
-        #controlsContainer #minimizeButton img,
-        #controlsContainer #restoreButton img {
-            width: 20px; 
-            height: 20px; 
-        }
-        #controlsContainer #codeOutput { 
-            margin-top: 20px; 
-            white-space: pre; 
-            border: 1px solid #ccc; 
-            padding: 10px; 
-            display: none; 
-        }
-        .control-group { margin-bottom: 10px; }
-        #bottomGrid {
+        #controlsContainer {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
         }
-        .grid-line {
-            position: absolute;
-            background: rgba(50, 50, 50, 0.8); /* Dark gray grid lines */
-        }
+        .minimized { display: none; }
+        #codeOutput { display: none; white-space: pre; background: #000; color: #fff; padding: 10px; margin-top: 10px; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
-    <div id="container"></div>
     <div id="controlsContainer">
-        <button id="minimizeButton" onclick="minimizeControls()">
-            <img src="https://img.icons8.com/ios/50/000000/minus.png" alt="Minimize" />
-        </button>
-        <button id="restoreButton" onclick="restoreControls()">
-            <img src="https://img.icons8.com/ios/50/000000/plus.png" alt="Restore" />
-        </button>
-        <div id="controls">
-            <h2>3D Model Builder</h2>
-            <div class="control-group">
-                <label for="shape">Shape:</label>
-                <select id="shape">
-                    <option value="cube">Cube</option>
-                    <option value="sphere">Sphere</option>
-                    <option value="cylinder">Cylinder</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="color">Color:</label>
-                <input type="color" id="color" value="#ff0000">
-            </div>
-            <div class="control-group">
-                <button onclick="addShape()">Add Shape</button>
-                <button onclick="removeShape()">Remove Shape</button>
-                <button onclick="clearAllShapes()">Clear All Shapes</button>
-                <button onclick="generateCode()">Generate C# Code</button>
-                <button onclick="toggleCodeVisibility()">Toggle Code Visibility</button>
-            </div>
-            <div class="control-group">
-                <label for="shapeSelect">Select Shape:</label>
-                <select id="shapeSelect" onchange="selectShape()">
-                    <option value="">-- None --</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label>Move X:</label>
-                <input type="range" id="moveX" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
-            </div>
-            <div class="control-group">
-                <label>Move Y:</label>
-                <input type="range" id="moveY" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
-            </div>
-            <div class="control-group">
-                <label>Move Z:</label>
-                <input type="range" id="moveZ" min="-5" max="5" step="0.1" value="0" oninput="moveShape()">
-            </div>
-            <div class="control-group">
-                <label>Scale X:</label>
-                <input type="range" id="scaleX" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
-            </div>
-            <div class="control-group">
-                <label>Scale Y:</label>
-                <input type="range" id="scaleY" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
-            </div>
-            <div class="control-group">
-                <label>Scale Z:</label>
-                <input type="range" id="scaleZ" min="0.1" max="5" step="0.1" value="1" oninput="scaleShape()">
-            </div>
-            <div class="control-group">
-                <label>Rotate X:</label>
-                <input type="range" id="rotateX" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
-            </div>
-            <div class="control-group">
-                <label>Rotate Y:</label>
-                <input type="range" id="rotateY" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
-            </div>
-            <div class="control-group">
-                <label>Rotate Z:</label>
-                <input type="range" id="rotateZ" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
-            </div>
-            <div id="codeOutput"></div>
-        </div>
+        <select id="shape">
+            <option value="cube">Cube</option>
+            <option value="sphere">Sphere</option>
+            <option value="cylinder">Cylinder</option>
+        </select>
+        <input type="color" id="color" value="#ff0000">
+        <button onclick="addShape()">Add Shape</button>
+        <button onclick="removeShape()">Remove Shape</button>
+        <button onclick="clearAllShapes()">Clear All</button>
+        <br>
+        <select id="shapeSelect" onchange="selectShape()">
+            <option value="">-- None --</option>
+        </select>
+        <br>
+        <label>Move: X <input type="number" id="moveX" step="0.1" onchange="moveShape()"></label>
+        <label>Y <input type="number" id="moveY" step="0.1" onchange="moveShape()"></label>
+        <label>Z <input type="number" id="moveZ" step="0.1" onchange="moveShape()"></label>
+        <br>
+        <label>Scale: X <input type="number" id="scaleX" step="0.1" value="1" onchange="scaleShape()"></label>
+        <label>Y <input type="number" id="scaleY" step="0.1" value="1" onchange="scaleShape()"></label>
+        <label>Z <input type="number" id="scaleZ" step="0.1" value="1" onchange="scaleShape()"></label>
+        <br>
+        <label>Rotate: X <input type="number" id="rotateX" step="1" onchange="rotateShape()"></label>
+        <label>Y <input type="number" id="rotateY" step="1" onchange="rotateShape()"></label>
+        <label>Z <input type="number" id="rotateZ" step="1" onchange="rotateShape()"></label>
+        <br>
+        <button onclick="generateCode()">Generate Code</button>
+        <button onclick="toggleCodeVisibility()">Toggle Code</button>
+        <button onclick="minimizeControls()">Minimize</button>
+        <button onclick="restoreControls()">Restore</button>
     </div>
-    <div id="bottomGrid"></div>
+    <div id="canvas-container"></div>
+    <pre id="codeOutput"></pre>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true; // Enable shadow maps
-        document.getElementById('container').appendChild(renderer.domElement);
+        let scene, camera, renderer;
+        let shapesGroup, shapes = [], shapeDetails = [], selectedShape = null;
+        let isRightMouseDown = false, lastMouseX = 0, lastMouseY = 0;
 
-        // Create a grid
-        const gridHelper = new THREE.GridHelper(100, 10, 0x333333, 0x333333); // Dark gray grid
-        gridHelper.position.y = -0.01; // Slightly below the origin to avoid clipping issues
-        gridHelper.material.opacity = 0.2;
-        gridHelper.material.transparent = true;
-        scene.add(gridHelper);
+        init();
 
-        // Create a background
-        scene.background = new THREE.Color(0xaaaaaa); // Light grey background
+        function init() {
+            scene = new THREE.Scene();
 
-        const light = new THREE.AmbientLight(0xffffff, 0.4); // Dim ambient light
-        scene.add(light);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        directionalLight.position.set(5, 10, 5).normalize();
-        directionalLight.castShadow = true; // Enable shadows
-        scene.add(directionalLight);
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
 
-        camera.position.z = 5;
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x404040); // Dark gray background
+            renderer.shadowMap.enabled = true; // Enable shadow mapping
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        const shapesGroup = new THREE.Group();
-        scene.add(shapesGroup);
+            // Ambient Light
+            const ambientLight = new THREE.AmbientLight(0x404040, 1); // Dim ambient light
+            scene.add(ambientLight);
 
-        const shapes = [];
-        const shapeDetails = [];
-        let selectedShape = null;
-        let controlsMinimized = false;
-        let isRightMouseDown = false;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
+            // Directional Light
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 10, 7.5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Shapes Group
+            shapesGroup = new THREE.Group();
+            scene.add(shapesGroup);
+
+            // Bottom Grid
+            const gridHelperBottom = new THREE.GridHelper(10, 10, 0x888888, 0x888888);
+            gridHelperBottom.position.y = -0.5;
+            scene.add(gridHelperBottom);
+
+            // Back Grid
+            const gridHelperBack = new THREE.GridHelper(10, 10, 0x888888, 0x888888);
+            gridHelperBack.rotation.x = Math.PI / 2;
+            gridHelperBack.position.z = -0.5;
+            scene.add(gridHelperBack);
+
+            animate();
+        }
 
         function addShape() {
             const shapeType = document.getElementById('shape').value;
@@ -300,57 +206,68 @@
         }
 
         function moveShape() {
-            if (selectedShape) {
-                selectedShape.position.set(
-                    parseFloat(document.getElementById('moveX').value),
-                    parseFloat(document.getElementById('moveY').value),
-                    parseFloat(document.getElementById('moveZ').value)
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].position = selectedShape.position.toArray();
-            }
+            if (!selectedShape) return;
+
+            selectedShape.position.set(
+                parseFloat(document.getElementById('moveX').value),
+                parseFloat(document.getElementById('moveY').value),
+                parseFloat(document.getElementById('moveZ').value)
+            );
+
+            updateShapeDetails();
         }
 
         function scaleShape() {
-            if (selectedShape) {
-                selectedShape.scale.set(
-                    parseFloat(document.getElementById('scaleX').value),
-                    parseFloat(document.getElementById('scaleY').value),
-                    parseFloat(document.getElementById('scaleZ').value)
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].scale = selectedShape.scale.toArray();
-            }
+            if (!selectedShape) return;
+
+            selectedShape.scale.set(
+                parseFloat(document.getElementById('scaleX').value),
+                parseFloat(document.getElementById('scaleY').value),
+                parseFloat(document.getElementById('scaleZ').value)
+            );
+
+            updateShapeDetails();
         }
 
         function rotateShape() {
-            if (selectedShape) {
-                selectedShape.rotation.set(
-                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateX').value)),
-                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateY').value)),
-                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateZ').value))
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].rotation = selectedShape.rotation.toArray();
+            if (!selectedShape) return;
+
+            selectedShape.rotation.set(
+                parseFloat(document.getElementById('rotateX').value) * (Math.PI / 180),
+                parseFloat(document.getElementById('rotateY').value) * (Math.PI / 180),
+                parseFloat(document.getElementById('rotateZ').value) * (Math.PI / 180)
+            );
+
+            updateShapeDetails();
+        }
+
+        function updateShapeDetails() {
+            const index = shapes.indexOf(selectedShape);
+            if (index !== -1) {
+                shapeDetails[index] = {
+                    type: document.getElementById('shape').value,
+                    color: document.getElementById('color').value,
+                    scale: selectedShape.scale.toArray(),
+                    position: selectedShape.position.toArray(),
+                    rotation: selectedShape.rotation.toArray()
+                };
             }
         }
 
         function generateCode() {
-            let code = `using UnityEngine;\n\npublic class ShapeCreator : MonoBehaviour\n{\n    void Start()\n    {\n`;
-            code += `        GameObject shape0 = new GameObject("Shape0");\n`;
+            let code = 'const shapesGroup = new THREE.Group();\n';
 
-            shapeDetails.forEach((shape, index) => {
-                if (index > 0) {
-                    let shapeCode = `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)});\n`;
-                    shapeCode += `        shape${index}.transform.SetParent(shape0.transform);\n`;
-                    shapeCode += `        shape${index}.transform.localScale = new Vector3(${shape.scale[0].toFixed(2)}, ${shape.scale[1].toFixed(2)}, ${shape.scale[2].toFixed(2)});\n`;
-                    shapeCode += `        shape${index}.transform.localPosition = new Vector3(${shape.position[0].toFixed(2)}, ${shape.position[1].toFixed(2)}, ${shape.position[2].toFixed(2)});\n`;
-                    shapeCode += `        shape${index}.transform.localRotation = Quaternion.Euler(${(shape.rotation[0] * 180 / Math.PI).toFixed(2)}, ${(shape.rotation[1] * 180 / Math.PI).toFixed(2)}, ${(shape.rotation[2] * 180 / Math.PI).toFixed(2)});\n`;
-                    shapeCode += `        shape${index}.GetComponent<Renderer>().material.color = ColorUtility.TryParseHtmlString("${shape.color}", out Color color) ? color : Color.white;\n`;
-                    shapeCode += `\n`;
-
-                    code += shapeCode;
-                }
+            shapeDetails.forEach((detail, index) => {
+                code += `const shape${index}Geometry = new THREE.${capitalizeFirstLetter(detail.type)}Geometry(${getGeometryArgs(detail.type)});\n`;
+                code += `const shape${index}Material = new THREE.MeshStandardMaterial({ color: '${detail.color}' });\n`;
+                code += `const shape${index} = new THREE.Mesh(shape${index}Geometry, shape${index}Material);\n`;
+                code += `shape${index}.position.set(${detail.position.join(', ')});\n`;
+                code += `shape${index}.scale.set(${detail.scale.join(', ')});\n`;
+                code += `shape${index}.rotation.set(${detail.rotation.map(r => r * (180 / Math.PI)).join(', ')});\n`;
+                code += `shapesGroup.add(shape${index});\n`;
             });
 
-            code += `    }\n}\n`;
+            code += 'scene.add(shapesGroup);\n';
 
             document.getElementById('codeOutput').textContent = code;
         }
@@ -368,64 +285,56 @@
             document.getElementById('controlsContainer').classList.remove('minimized');
         }
 
-        document.addEventListener('keydown', function(event) {
-            switch (event.key) {
-                case 'w':
-                    camera.position.z -= 0.1;
-                    break;
-                case 's':
-                    camera.position.z += 0.1;
-                    break;
-                case 'a':
-                    camera.position.x -= 0.1;
-                    break;
-                case 'd':
-                    camera.position.x += 0.1;
-                    break;
-            }
-        });
-
-        document.addEventListener('mousedown', function(event) {
-            if (event.button === 2) {
-                isRightMouseDown = true;
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-                event.preventDefault();
-            }
-        });
-
-        document.addEventListener('mouseup', function(event) {
-            if (event.button === 2) {
-                isRightMouseDown = false;
-            }
-        });
-
-        document.addEventListener('mousemove', function(event) {
-            if (isRightMouseDown) {
-                const deltaX = event.clientX - lastMouseX;
-                const deltaY = event.clientY - lastMouseY;
-
-                camera.rotation.y -= deltaX * 0.005;
-
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-            }
-        });
-
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
         }
-        animate();
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        function getGeometryArgs(type) {
+            switch (type) {
+                case 'cube': return '1, 1, 1';
+                case 'sphere': return '1, 32, 32';
+                case 'cylinder': return '1, 1, 2, 32';
+            }
+        }
 
         window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        document.addEventListener('contextmenu', function(event) {
-            event.preventDefault();
+        window.addEventListener('mousedown', event => {
+            if (event.button === 2) {
+                isRightMouseDown = true;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isRightMouseDown = false;
+        });
+
+        window.addEventListener('mousemove', event => {
+            if (isRightMouseDown) {
+                const deltaX = event.clientX - lastMouseX;
+                const deltaY = event.clientY - lastMouseY;
+
+                camera.rotation.y -= deltaX * 0.01;
+                camera.rotation.x -= deltaY * 0.01;
+
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            }
+        });
+
+        window.addEventListener('wheel', event => {
+            camera.position.z += event.deltaY * 0.05;
         });
     </script>
 </body>
