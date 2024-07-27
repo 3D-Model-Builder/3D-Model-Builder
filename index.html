@@ -202,7 +202,16 @@
 
             const material = new THREE.MeshStandardMaterial({ color: color });
             const shape = new THREE.Mesh(geometry, material);
-            shapesGroup.add(shape);
+
+            if (shapes.length === 0) {
+                shapesGroup.add(shape);
+                shape.position.set(0, 0, 0); // base shape at origin
+            } else {
+                // Position new shapes relative to shape0
+                const previousShape = shapes[0];
+                shape.position.set(previousShape.position.x + 2, previousShape.position.y, previousShape.position.z);
+                shapesGroup.add(shape);
+            }
 
             shapes.push(shape);
             shapeDetails.push({
@@ -311,14 +320,21 @@
         function generateCode() {
             let code = `using UnityEngine;\n\npublic class ShapeCreator : MonoBehaviour\n{\n    void Start()\n    {\n`;
             code += `        GameObject shapesGroup = new GameObject("ShapesGroup");\n`;
+            code += `        GameObject shape0 = GameObject.CreatePrimitive(PrimitiveType.${shapeDetails[0].type.charAt(0).toUpperCase() + shapeDetails[0].type.slice(1)});\n`;
+            code += `        shape0.transform.parent = shapesGroup.transform;\n`;
+            code += `        shape0.transform.localScale = new Vector3(${shapeDetails[0].scale[0].toFixed(2)}, ${shapeDetails[0].scale[1].toFixed(2)}, ${shapeDetails[0].scale[2].toFixed(2)});\n`;
+            code += `        shape0.transform.localPosition = new Vector3(${shapeDetails[0].position[0].toFixed(2)}, ${shapeDetails[0].position[1].toFixed(2)}, ${shapeDetails[0].position[2].toFixed(2)});\n`;
+            code += `        shape0.transform.localRotation = Quaternion.Euler(${shapeDetails[0].rotation[0].toFixed(2)}, ${shapeDetails[0].rotation[1].toFixed(2)}, ${shapeDetails[0].rotation[2].toFixed(2)});\n`;
+            code += `        shape0.GetComponent<Renderer>().material.color = ColorUtility.TryParseHtmlString("${shapeDetails[0].color}", out Color color) ? color : Color.white;\n`;
+            code += `\n`;
 
-            shapeDetails.forEach((shape, index) => {
-                let shapeCode = `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)});\n`;
-                shapeCode += `        shape${index}.transform.parent = shapesGroup.transform;\n`;
-                shapeCode += `        shape${index}.transform.localScale = new Vector3(${shape.scale[0].toFixed(2)}, ${shape.scale[1].toFixed(2)}, ${shape.scale[2].toFixed(2)});\n`;
-                shapeCode += `        shape${index}.transform.localPosition = new Vector3(${shape.position[0].toFixed(2)}, ${shape.position[1].toFixed(2)}, ${shape.position[2].toFixed(2)});\n`;
-                shapeCode += `        shape${index}.transform.localRotation = Quaternion.Euler(${shape.rotation[0].toFixed(2)}, ${shape.rotation[1].toFixed(2)}, ${shape.rotation[2].toFixed(2)});\n`;
-                shapeCode += `        shape${index}.GetComponent<Renderer>().material.color = ColorUtility.TryParseHtmlString("${shape.color}", out Color color) ? color : Color.white;\n`;
+            shapeDetails.slice(1).forEach((shape, index) => {
+                let shapeCode = `        GameObject shape${index + 1} = GameObject.CreatePrimitive(PrimitiveType.${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)});\n`;
+                shapeCode += `        shape${index + 1}.transform.parent = shape0.transform;\n`;
+                shapeCode += `        shape${index + 1}.transform.localScale = new Vector3(${shape.scale[0].toFixed(2)}, ${shape.scale[1].toFixed(2)}, ${shape.scale[2].toFixed(2)});\n`;
+                shapeCode += `        shape${index + 1}.transform.localPosition = new Vector3(${shape.position[0].toFixed(2)}, ${shape.position[1].toFixed(2)}, ${shape.position[2].toFixed(2)});\n`;
+                shapeCode += `        shape${index + 1}.transform.localRotation = Quaternion.Euler(${shape.rotation[0].toFixed(2)}, ${shape.rotation[1].toFixed(2)}, ${shape.rotation[2].toFixed(2)});\n`;
+                shapeCode += `        shape${index + 1}.GetComponent<Renderer>().material.color = ColorUtility.TryParseHtmlString("${shape.color}", out Color color) ? color : Color.white;\n`;
                 shapeCode += `\n`;
 
                 code += shapeCode;
@@ -392,14 +408,11 @@
         animate();
 
         window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        document.addEventListener('contextmenu', function(event) {
-            event.preventDefault();
-        });
     </script>
 </body>
 </html>
