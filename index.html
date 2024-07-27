@@ -172,6 +172,9 @@
 
         camera.position.z = 5;
 
+        const shapesGroup = new THREE.Group();
+        scene.add(shapesGroup);
+
         const shapes = [];
         const shapeDetails = [];
         let selectedShape = null;
@@ -199,7 +202,7 @@
 
             const material = new THREE.MeshStandardMaterial({ color: color });
             const shape = new THREE.Mesh(geometry, material);
-            scene.add(shape);
+            shapesGroup.add(shape);
 
             shapes.push(shape);
             shapeDetails.push({
@@ -219,7 +222,7 @@
 
         function removeShape() {
             if (selectedShape) {
-                scene.remove(selectedShape);
+                shapesGroup.remove(selectedShape);
                 selectedShape.geometry.dispose();
                 selectedShape.material.dispose();
 
@@ -234,7 +237,7 @@
 
         function clearAllShapes() {
             shapes.forEach(shape => {
-                scene.remove(shape);
+                shapesGroup.remove(shape);
                 shape.geometry.dispose();
                 shape.material.dispose();
             });
@@ -307,9 +310,11 @@
 
         function generateCode() {
             let code = `using UnityEngine;\n\npublic class ShapeCreator : MonoBehaviour\n{\n    void Start()\n    {\n`;
+            code += `        GameObject shapesGroup = new GameObject("ShapesGroup");\n`;
 
             shapeDetails.forEach((shape, index) => {
                 let shapeCode = `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)});\n`;
+                shapeCode += `        shape${index}.transform.parent = shapesGroup.transform;\n`;
                 shapeCode += `        shape${index}.transform.localScale = new Vector3(${shape.scale[0].toFixed(2)}, ${shape.scale[1].toFixed(2)}, ${shape.scale[2].toFixed(2)});\n`;
                 shapeCode += `        shape${index}.transform.localPosition = new Vector3(${shape.position[0].toFixed(2)}, ${shape.position[1].toFixed(2)}, ${shape.position[2].toFixed(2)});\n`;
                 shapeCode += `        shape${index}.transform.localRotation = Quaternion.Euler(${shape.rotation[0].toFixed(2)}, ${shape.rotation[1].toFixed(2)}, ${shape.rotation[2].toFixed(2)});\n`;
