@@ -462,8 +462,40 @@
 
     alert('Code copied to clipboard!'); // Optional: Show a confirmation alert
 }
+        //start
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchMoveX = 0;
+        let touchMoveY = 0;
 
+        function onTouchStart(event) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+        }
 
+        function onTouchMove(event) {
+            touchMoveX = event.touches[0].clientX;
+            touchMoveY = event.touches[0].clientY;
+
+            const deltaX = touchMoveX - touchStartX;
+            const deltaY = touchMoveY - touchStartY;
+
+            camera.rotation.y -= deltaX * 0.01;
+            camera.rotation.x -= deltaY * 0.01;
+
+            touchStartX = touchMoveX;
+            touchStartY = touchMoveY;
+        }
+
+        function onTouchEnd() {
+            touchStartX = 0;
+            touchStartY = 0;
+        }
+
+        window.addEventListener('touchstart', onTouchStart, false);
+        window.addEventListener('touchmove', onTouchMove, false);
+        window.addEventListener('touchend', onTouchEnd, false);
+        //end
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
