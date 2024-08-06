@@ -103,6 +103,7 @@
                     <option value="cube">Cube</option>
                     <option value="sphere">Sphere</option>
                     <option value="cylinder">Cylinder</option>
+                    <option value="empty">Empty GameObject</option>
                 </select>
             </div>
             <div class="control-group">
@@ -148,24 +149,21 @@
             </div>
             <div class="control-group">
                 <label>Rotate X:</label>
-                <input type="range" id="rotateX" min="-180" max="18" step="1" value="0" oninput="rotateShape()">
+                <input type="range" id="rotateX" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
             </div>
             <div class="control-group">
                 <label>Rotate Y:</label>
-                <input type="range" id="rotateY" min="-180" max="18" step="1" value="0" oninput="rotateShape()">
+                <input type="range" id="rotateY" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
             </div>
             <div class="control-group">
                 <label>Rotate Z:</label>
-                <input type="range" id="rotateZ" min="-180" max="18" step="1" value="0" oninput="rotateShape()">
+                <input type="range" id="rotateZ" min="-180" max="180" step="1" value="0" oninput="rotateShape()">
             </div>
-            <div id="codeOutput"></div>
-            
-        </div>
             <div class="control-group">
                 <button onclick="copyToClipboard()">Copy Code</button>
             </div>
-         <div id="codeOutput"></div>
-
+            <div id="codeOutput"></div>
+        </div>
     </div>
     <div id="bottomGrid"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -202,94 +200,85 @@
         pointLight.castShadow = true; // Enable shadows for point light
         scene.add(pointLight);
 
+        // Add a plane to receive shadows
+        const planeGeometry = new THREE.PlaneGeometry(500, 500);
+        const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = -0.1;
+        plane.receiveShadow = true; // Plane receives shadows
+        scene.add(plane);
+
         camera.position.z = 5;
 
-        const shapesGroup = new THREE.Group();
-        scene.add(shapesGroup);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
         let shapes = [];
-        let shapeDetails = [];
-        let selectedShape = null;
-        let isRightMouseDown = false;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
+        let selectedShapeIndex = -1;
 
         function addShape() {
             const shapeType = document.getElementById('shape').value;
             const color = document.getElementById('color').value;
+            let geometry, material, shape;
 
-            let geometry;
-            switch (shapeType) {
-                case 'cube':
-                    geometry = new THREE.BoxGeometry(1, 1, 1);
-                    break;
-                case 'sphere':
-                    geometry = new THREE.SphereGeometry(1, 32, 32);
-                    break;
-                case 'cylinder':
-                    geometry = new THREE.CylinderGeometry(1, 1, 2, 32);
-                    break;
+            if (shapeType === 'cube') {
+                geometry = new THREE.BoxGeometry();
+                material = new THREE.MeshStandardMaterial({ color: color });
+                shape = new THREE.Mesh(geometry, material);
+            } else if (shapeType === 'sphere') {
+                geometry = new THREE.SphereGeometry();
+                material = new THREE.MeshStandardMaterial({ color: color });
+                shape = new THREE.Mesh(geometry, material);
+            } else if (shapeType === 'cylinder') {
+                geometry = new THREE.CylinderGeometry();
+                material = new THREE.MeshStandardMaterial({ color: color });
+                shape = new THREE.Mesh(geometry, material);
+            } else if (shapeType === 'empty') {
+                shape = new THREE.Group(); // Create an empty group as the empty game object
             }
 
-            const material = new THREE.MeshStandardMaterial({ color: color });
-            const shape = new THREE.Mesh(geometry, material);
-            shape.castShadow = true; // Enable shadow casting
-            shape.receiveShadow = true; // Enable shadow receiving
-            shapesGroup.add(shape);
+            shape.castShadow = true; // Shape casts shadows
+            shape.receiveShadow = true; // Shape receives shadows
+            scene.add(shape);
             shapes.push(shape);
+            updateShapeList();
+        }
 
-            shapeDetails.push({
-                type: shapeType,
-                color: color,
-                scale: shape.scale.toArray(),
-                position: shape.position.toArray(),
-                rotation: shape.rotation.toArray()
-            });
-
+        function updateShapeList() {
             const shapeSelect = document.getElementById('shapeSelect');
-            const option = document.createElement('option');
-            option.value = shapes.length - 1;
-            option.textContent = `Shape ${shapes.length}`;
-            shapeSelect.appendChild(option);
-
-            // Make shape0 the base
-            if (shapes.length > 1) {
-                shapes[shapes.length - 1].position.set(0, 0, 0); // Reset position
-                shapesGroup.add(shapes[shapes.length - 1]);
-            }
+            shapeSelect.innerHTML = '<option value="">-- None --</option>';
+            shapes.forEach((shape, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `Shape ${index + 1}`;
+                shapeSelect.appendChild(option);
+            });
         }
 
         function removeShape() {
-            const shape = shapes.pop();
-            if (shape) {
-                shapesGroup.remove(shape);
-                shape.geometry.dispose();
-                shape.material.dispose();
-                shapeDetails.pop();
-
-                const shapeSelect = document.getElementById('shapeSelect');
-                shapeSelect.remove(shapeSelect.options.length - 1);
+            if (selectedShapeIndex !== -1) {
+                scene.remove(shapes[selectedShapeIndex]);
+                shapes.splice(selectedShapeIndex, 1);
+                updateShapeList();
+                resetTransformControls();
+                selectedShapeIndex = -1;
             }
         }
 
         function clearAllShapes() {
-            shapes.forEach(shape => {
-                shapesGroup.remove(shape);
-                shape.geometry.dispose();
-                shape.material.dispose();
-            });
-            shapes.length = 0;
-            shapeDetails.length = 0;
-
-            const shapeSelect = document.getElementById('shapeSelect');
-            shapeSelect.innerHTML = '<option value="">-- None --</option>';
+            shapes.forEach(shape => scene.remove(shape));
+            shapes = [];
+            updateShapeList();
+            resetTransformControls();
         }
 
         function selectShape() {
-            const index = parseInt(document.getElementById('shapeSelect').value);
-            selectedShape = shapes[index] || null;
-
-            if (selectedShape) {
+            selectedShapeIndex = parseInt(document.getElementById('shapeSelect').value, 10);
+            if (isNaN(selectedShapeIndex)) {
+                selectedShapeIndex = -1;
+                resetTransformControls();
+            } else {
+                const selectedShape = shapes[selectedShapeIndex];
                 document.getElementById('moveX').value = selectedShape.position.x;
                 document.getElementById('moveY').value = selectedShape.position.y;
                 document.getElementById('moveZ').value = selectedShape.position.z;
@@ -299,78 +288,89 @@
                 document.getElementById('rotateX').value = selectedShape.rotation.x * (180 / Math.PI);
                 document.getElementById('rotateY').value = selectedShape.rotation.y * (180 / Math.PI);
                 document.getElementById('rotateZ').value = selectedShape.rotation.z * (180 / Math.PI);
-            } else {
-                document.getElementById('moveX').value = 0;
-                document.getElementById('moveY').value = 0;
-                document.getElementById('moveZ').value = 0;
-                document.getElementById('scaleX').value = 1;
-                document.getElementById('scaleY').value = 1;
-                document.getElementById('scaleZ').value = 1;
-                document.getElementById('rotateX').value = 0;
-                document.getElementById('rotateY').value = 0;
-                document.getElementById('rotateZ').value = 0;
             }
         }
 
         function moveShape() {
-            if (selectedShape) {
-                selectedShape.position.set(
-                    parseFloat(document.getElementById('moveX').value),
-                    parseFloat(document.getElementById('moveY').value),
-                    parseFloat(document.getElementById('moveZ').value)
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].position = selectedShape.position.toArray();
+            if (selectedShapeIndex !== -1) {
+                const selectedShape = shapes[selectedShapeIndex];
+                selectedShape.position.x = parseFloat(document.getElementById('moveX').value);
+                selectedShape.position.y = parseFloat(document.getElementById('moveY').value);
+                selectedShape.position.z = parseFloat(document.getElementById('moveZ').value);
             }
         }
 
         function scaleShape() {
-            if (selectedShape) {
-                selectedShape.scale.set(
-                    parseFloat(document.getElementById('scaleX').value),
-                    parseFloat(document.getElementById('scaleY').value),
-                    parseFloat(document.getElementById('scaleZ').value)
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].scale = selectedShape.scale.toArray();
+            if (selectedShapeIndex !== -1) {
+                const selectedShape = shapes[selectedShapeIndex];
+                selectedShape.scale.x = parseFloat(document.getElementById('scaleX').value);
+                selectedShape.scale.y = parseFloat(document.getElementById('scaleY').value);
+                selectedShape.scale.z = parseFloat(document.getElementById('scaleZ').value);
             }
         }
 
         function rotateShape() {
-            if (selectedShape) {
-                selectedShape.rotation.set(
-                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateX').value)),
-                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateY').value)),
-                    THREE.MathUtils.degToRad(parseFloat(document.getElementById('rotateZ').value))
-                );
-                shapeDetails[shapes.indexOf(selectedShape)].rotation = selectedShape.rotation.toArray();
+            if (selectedShapeIndex !== -1) {
+                const selectedShape = shapes[selectedShapeIndex];
+                selectedShape.rotation.x = parseFloat(document.getElementById('rotateX').value) * (Math.PI / 180);
+                selectedShape.rotation.y = parseFloat(document.getElementById('rotateY').value) * (Math.PI / 180);
+                selectedShape.rotation.z = parseFloat(document.getElementById('rotateZ').value) * (Math.PI / 180);
             }
         }
 
+        function resetTransformControls() {
+            document.getElementById('moveX').value = 0;
+            document.getElementById('moveY').value = 0;
+            document.getElementById('moveZ').value = 0;
+            document.getElementById('scaleX').value = 1;
+            document.getElementById('scaleY').value = 1;
+            document.getElementById('scaleZ').value = 1;
+            document.getElementById('rotateX').value = 0;
+            document.getElementById('rotateY').value = 0;
+            document.getElementById('rotateZ').value = 0;
+        }
+
         function generateCode() {
-            let code = `using UnityEngine;\n\npublic class ShapeCreator : MonoBehaviour\n{\n    void Start()\n    {\n`;
-            code += `        GameObject shape0 = new GameObject("Shape0");\n`;
-
-            shapeDetails.forEach((shape, index) => {
-                if (index > 0) {
-                    let shapeCode = `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.${shape.type.charAt(0).toUpperCase() + shape.type.slice(1)});\n`;
-                    shapeCode += `        shape${index}.transform.SetParent(shape0.transform);\n`;
-                    shapeCode += `        shape${index}.transform.localScale = new Vector3(${shape.scale[0].toFixed(2)}, ${shape.scale[1].toFixed(2)}, ${shape.scale[2].toFixed(2)});\n`;
-                    shapeCode += `        shape${index}.transform.localPosition = new Vector3(${shape.position[0].toFixed(2)}, ${shape.position[1].toFixed(2)}, ${shape.position[2].toFixed(2)});\n`;
-                    shapeCode += `        shape${index}.transform.localRotation = Quaternion.Euler(${(shape.rotation[0] * 180 / Math.PI).toFixed(2)}, ${(shape.rotation[1] * 180 / Math.PI).toFixed(2)}, ${(shape.rotation[2] * 180 / Math.PI).toFixed(2)});\n`;
-                    shapeCode += `        shape${index}.GetComponent<Renderer>().material.color = ColorUtility.TryParseHtmlString("${shape.color}", out Color color) ? color : Color.white;\n`;
-                    shapeCode += `\n`;
-
-                    code += shapeCode;
+            let code = 'using UnityEngine;\n\n';
+            code += 'public class GeneratedShapes : MonoBehaviour\n{\n';
+            code += '    void Start()\n    {\n';
+            shapes.forEach((shape, index) => {
+                if (shape.geometry instanceof THREE.BoxGeometry) {
+                    code += `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.Cube);\n`;
+                } else if (shape.geometry instanceof THREE.SphereGeometry) {
+                    code += `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.Sphere);\n`;
+                } else if (shape.geometry instanceof THREE.CylinderGeometry) {
+                    code += `        GameObject shape${index} = GameObject.CreatePrimitive(PrimitiveType.Cylinder);\n`;
+                } else if (shape instanceof THREE.Group) {
+                    code += `        GameObject shape${index} = new GameObject("EmptyObject${index}");\n`;
                 }
+                code += `        shape${index}.transform.position = new Vector3(${shape.position.x.toFixed(2)}f, ${shape.position.y.toFixed(2)}f, ${shape.position.z.toFixed(2)}f);\n`;
+                code += `        shape${index}.transform.localScale = new Vector3(${shape.scale.x.toFixed(2)}f, ${shape.scale.y.toFixed(2)}f, ${shape.scale.z.toFixed(2)}f);\n`;
+                code += `        shape${index}.transform.rotation = Quaternion.Euler(${(shape.rotation.x * (180 / Math.PI)).toFixed(2)}f, ${(shape.rotation.y * (180 / Math.PI)).toFixed(2)}f, ${(shape.rotation.z * (180 / Math.PI)).toFixed(2)}f);\n`;
+                if (!(shape instanceof THREE.Group)) {
+                    code += `        shape${index}.GetComponent<Renderer>().material.color = new Color(${shape.material.color.r.toFixed(2)}f, ${shape.material.color.g.toFixed(2)}f, ${shape.material.color.b.toFixed(2)}f);\n`;
+                }
+                code += '\n';
             });
-
-            code += `    }\n}\n`;
-
+            code += '    }\n';
+            code += '}\n';
             document.getElementById('codeOutput').textContent = code;
         }
 
         function toggleCodeVisibility() {
             const codeOutput = document.getElementById('codeOutput');
-            codeOutput.style.display = codeOutput.style.display === 'none' ? 'block' : 'none';
+            if (codeOutput.style.display === 'none') {
+                codeOutput.style.display = 'block';
+            } else {
+                codeOutput.style.display = 'none';
+            }
+        }
+
+        function copyToClipboard() {
+            const codeOutput = document.getElementById('codeOutput').textContent;
+            navigator.clipboard.writeText(codeOutput).then(() => {
+                alert('Code copied to clipboard!');
+            });
         }
 
         function minimizeControls() {
@@ -381,103 +381,27 @@
             document.getElementById('controlsContainer').classList.remove('minimized');
         }
 
-        document.addEventListener('keydown', function(event) {
-            switch (event.key) {
-                case 'w':
-                    camera.position.z -= 0.1;
-                    break;
-                case 's':
-                    camera.position.z += 0.1;
-                    break;
-                case 'a':
-                    camera.position.x -= 0.1;
-                    break;
-                case 'd':
-                    camera.position.x += 0.1;
-                    break;
-                case 'e': 
-                     camera.position.y += 0.1;
-                    break;
-                case 'q': // Move camera down
-                     camera.position.y -= 0.1;
-                    break;
-                case 'W':
-                    camera.position.z -= 0.1;
-                    break;
-                case 'S':
-                    camera.position.z += 0.1;
-                    break;
-                case 'A':
-                    camera.position.x -= 0.1;
-                    break;
-                case 'D':
-                    camera.position.x += 0.1;
-                    break;
-                case 'E': 
-                     camera.position.y += 0.1;
-                    break;
-                case 'Q': // Move camera down
-                     camera.position.y -= 0.1;
-                    break;
-            }
-        });
+        function addGridLine(x, y) {
+            const line = document.createElement('div');
+            line.className = 'grid-line';
+            line.style.left = `${x}px`;
+            line.style.top = `${y}px`;
+            line.style.width = '1px';
+            line.style.height = '1px';
+            document.getElementById('bottomGrid').appendChild(line);
+        }
 
-        document.addEventListener('mousedown', function(event) {
-            if (event.button === 2) {
-                isRightMouseDown = true;
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-                event.preventDefault();
-            }
-        });
+        for (let i = 0; i < 100; i++) {
+            addGridLine(i * 10, window.innerHeight - 1);
+            addGridLine(window.innerWidth - 1, i * 10);
+        }
 
-        document.addEventListener('mouseup', function(event) {
-            if (event.button === 2) {
-                isRightMouseDown = false;
-            }
-        });
-
-        document.addEventListener('mousemove', function(event) {
-            if (isRightMouseDown) {
-                const deltaX = event.clientX - lastMouseX;
-                const deltaY = event.clientY - lastMouseY;
-
-                camera.rotation.y -= deltaX * 0.005;
-
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-            }
-        });
-
-        function copyToClipboard() {
-    const codeOutput = document.getElementById('codeOutput');
-    
-    // Create a temporary textarea element
-    const textarea = document.createElement('textarea');
-    textarea.value = codeOutput.textContent; // Set the value to the code output text
-    document.body.appendChild(textarea); // Append the textarea to the body
-    textarea.select(); // Select the textarea content
-    document.execCommand('copy'); // Execute the copy command
-    document.body.removeChild(textarea); // Remove the textarea from the body
-
-    alert('Code copied to clipboard!'); // Optional: Show a confirmation alert
-}
-        
         function animate() {
             requestAnimationFrame(animate);
+            controls.update();
             renderer.render(scene, camera);
         }
         animate();
-
-        window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-        });
-
-        document.addEventListener('contextmenu', function(event) {
-            event.preventDefault();
-        });
     </script>
 </body>
 </html>
